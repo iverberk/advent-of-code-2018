@@ -3,25 +3,18 @@ from collections import defaultdict, deque
 WALL, ELF, GOBLIN = '#', 'E', 'G'
 
 cave = defaultdict(lambda: '.')
-units, walls = [], []
+units = []
 
 
 class Unit:
 
-    def __init__(self, kind, x, y):
+    def __init__(self, kind, x, y, attack_power=3):
         self.kind = kind
         self.original = (x, y)
         self.position = (x, y)
 
         self.hit_points = 200
-        self.attack_power = 3
-
-    def reset(self, power):
-        self.position = self.original
-        self.hit_points = 200
-        self.attack_power = power if power > 3 and self.kind == ELF else 3
-
-        return self
+        self.attack_power = attack_power
 
     def dead(self):
         return self.hit_points <= 0
@@ -81,15 +74,16 @@ class Unit:
         p = sorted(paths, key=lambda p: (len(p[1]), p[0][::-1]))
 
         # Return first step of selected target and path
+        cave[self.position] = '.'
         self.position = p[0][1][1]
-        refresh_cave()
+        cave[self.position] = self
 
     def hit(self, power):
         self.hit_points -= power
 
         if self.hit_points <= 0:
             self.hit_points = 0
-            refresh_cave()
+            cave[self.position] = '.'
 
     def attack(self, enemies):
         if self.dead():
@@ -97,17 +91,6 @@ class Unit:
 
         enemy = min(enemies, key=lambda e: (e.hit_points, e.position[::-1]))
         enemy.hit(self.attack_power)
-
-
-def refresh_cave():
-    cave.clear()
-
-    for unit in units:
-        if not unit.dead():
-            cave[unit.position] = unit
-
-    for wall in walls:
-        cave[wall] = WALL
 
 
 def draw_cave(dimension=32):
@@ -121,6 +104,7 @@ def draw_cave(dimension=32):
         print()
 
 
+lines = []
 with open('input') as f:
     lines = [line.rstrip() for line in f]
 
@@ -128,12 +112,11 @@ with open('input') as f:
         for x, object in enumerate(line):
             unit = None
             if object in [ELF, GOBLIN]:
-                units.append(Unit(object, x, y))
+                unit = Unit(object, x, y)
+                units.append(unit)
+                cave[(x, y)] = unit
             elif object == WALL:
-                walls.append((x, y))
-
-    refresh_cave()
-
+                cave[(x, y)] = WALL
 
 rounds = 0
 done = False
@@ -147,8 +130,21 @@ while not done:
         elf_attack_power += 1
         increase_power = False
 
-        units = [u.reset(elf_attack_power) for u in units]
-        refresh_cave()
+        units = []
+        cave.clear()
+        for y, line in enumerate(lines):
+            for x, object in enumerate(line):
+                unit = None
+                if object == ELF:
+                    unit = Unit(object, x, y, elf_attack_power)
+                    units.append(unit)
+                    cave[(x, y)] = unit
+                elif object == GOBLIN:
+                    unit = Unit(object, x, y)
+                    units.append(unit)
+                    cave[(x, y)] = unit
+                elif object == WALL:
+                    cave[(x, y)] = WALL
 
     units.sort(key=lambda unit: unit.position[::-1])
 
