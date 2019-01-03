@@ -30,7 +30,7 @@ class Unit:
 
         return enemies
 
-    def move(self, enemies):
+    def move(self):
         if self.dead():
             return
 
@@ -120,13 +120,14 @@ rounds = 0
 done = False
 while not done:
 
+    # [::-1] to sort on (y,x) instead of (x,y)
     units.sort(key=lambda unit: unit.position[::-1])
 
     for unit in units:
         if unit.dead():
             continue
 
-        unit.move(units)
+        unit.move()
 
         enemies = unit.enemies_in_range()
         if enemies:
