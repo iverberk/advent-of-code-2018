@@ -3,7 +3,7 @@ from collections import defaultdict, deque
 WALL, ELF, GOBLIN = '#', 'E', 'G'
 
 cave = defaultdict(lambda: '.')
-units, walls = [], []
+units = []
 
 
 class Unit:
@@ -73,15 +73,16 @@ class Unit:
         p = sorted(paths, key=lambda p: (len(p[1]), p[0][::-1]))
 
         # Return first step of selected target and path
+        cave[self.position] = '.'
         self.position = p[0][1][1]
-        refresh_cave()
+        cave[self.position] = self
 
     def hit(self, power):
         self.hit_points -= power
 
         if self.hit_points <= 0:
             self.hit_points = 0
-            refresh_cave()
+            cave[self.position] = '.'
 
     def attack(self, enemies):
         if self.dead():
@@ -89,17 +90,6 @@ class Unit:
 
         enemy = min(enemies, key=lambda e: (e.hit_points, e.position[::-1]))
         enemy.hit(self.attack_power)
-
-
-def refresh_cave():
-    cave.clear()
-
-    for unit in units:
-        if not unit.dead():
-            cave[unit.position] = unit
-
-    for wall in walls:
-        cave[wall] = WALL
 
 
 def draw_cave(dimension=32):
@@ -120,11 +110,11 @@ with open('input') as f:
         for x, object in enumerate(line):
             unit = None
             if object in [ELF, GOBLIN]:
-                units.append(Unit(object, x, y))
+                unit = Unit(object, x, y)
+                units.append(unit)
+                cave[(x, y)] = unit
             elif object == WALL:
-                walls.append((x, y))
-
-    refresh_cave()
+                cave[(x, y)] = WALL
 
 rounds = 0
 done = False
